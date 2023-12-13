@@ -2,18 +2,40 @@ import pygame
 from sys import exit
 from random import randint
 
+# Constants
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+GAME_SPEED = 60
+
+# Game States
+INTRO = 0
+WALK = 1
+FIGHT = 2
+VICTORY = 3
+GAME_OVER = 4 
+
+PLAYER_WALK_IMAGES = [
+    'assets/images/player/walk1.png',
+    'assets/images/player/walk2.png'
+]
+
+SKELETON_WALK_IMAGES = [
+    'assets/images/enemies/skeleton/walk1.png',
+    'assets/images/enemies/skeleton/walk2.png',
+    'assets/images/enemies/skeleton/walk3.png',
+    'assets/images/enemies/skeleton/walk4.png'
+]
+
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        player_walk_1 = pygame.image.load('assets/images/player/walk1.png').convert_alpha()
-        player_walk_2 = pygame.image.load('assets/images/player/walk2.png').convert_alpha()
-        self.player_walk = [player_walk_1,player_walk_2]
+        self.player_walk = [pygame.image.load(image).convert_alpha() for image in PLAYER_WALK_IMAGES]
         self.player_index = 0
 
         self.x_pos = -100
         self.y_pos = 665
         self.image = self.player_walk[self.player_index]
-        self.rect = self.image.get_rect(midbottom = (self.x_pos, self.y_pos))
+        self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
                 
     def walk_animation(self):
         self.player_index += 0.1
@@ -29,19 +51,18 @@ class Player(pygame.sprite.Sprite):
             self.rect.midbottom = (self.x_pos, self.y_pos)
 
 class Enemies(pygame.sprite.Sprite):
-    def __init__(self):
+    def __init__(self, screen):
         super().__init__()
-        skeleton_walk_1 = pygame.image.load('assets/images/enemies/skeleton/walk1.png').convert_alpha()
-        skeleton_walk_2 = pygame.image.load('assets/images/enemies/skeleton/walk2.png').convert_alpha()
-        skeleton_walk_3 = pygame.image.load('assets/images/enemies/skeleton/walk3.png').convert_alpha()
-        skeleton_walk_4 = pygame.image.load('assets/images/enemies/skeleton/walk4.png').convert_alpha()
-        self.skeleton_walk = [skeleton_walk_1, skeleton_walk_2, skeleton_walk_3, skeleton_walk_4]
+        self.skeleton_walk = [pygame.image.load(image).convert_alpha() for image in SKELETON_WALK_IMAGES]
         
-        self.x_pos = randint(1300,1400)
+        self.x_pos = randint(1300, 1400)
         self.y_pos = 675
         self.animation_index = 0
         self.image = self.skeleton_walk[self.animation_index]
-        self.rect = self.image.get_rect(midbottom = (self.x_pos, self.y_pos))
+        self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
+
+        self.total_health = 100
+        self.screen = screen
                 
     def walk_animation(self):
         self.animation_index += 0.1
@@ -51,16 +72,28 @@ class Enemies(pygame.sprite.Sprite):
     def screen_movement(self):
         self.x_pos -= 1
         self.rect.midbottom = (self.x_pos, self.y_pos)
+
+    def health_update(self, word_correct):
+        if word_correct:
+            self.total_health -= 10
+
+    def display_health(self):
+        health_bar_width = (self.total_health / 100) * 50
+        health_color = (0, 255, 0)
+        if self.total_health < 50:
+            health_color = (255, 0, 0)
+        pygame.draw.rect(self.screen, health_color, (self.rect.x, self.rect.y - 10, health_bar_width, 5))
     
-    def update(self):
+    def update(self, word_correct):
         self.walk_animation()
         self.screen_movement()
+        self.health_update(word_correct)
+        self.display_health()
 
 def initialize_game():
     pygame.init()
 
-    width, height = 1280, 720
-    screen = pygame.display.set_mode((width, height))
+    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Typing Cat")
 
     background_surf = pygame.image.load('assets/images/environment/background.png').convert()
@@ -80,7 +113,6 @@ def draw_foreground(screen, foreground_surf, bg_x):
     screen.blit(foreground_surf, (bg_x + foreground_surf.get_width(), 20))
 
 def draw_intro_screen(screen, input_text, cursor_visible):
-    # Create a semi-transparent dark overlay
     overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
     overlay.fill((0, 0, 0, 200)) 
 
@@ -88,16 +120,16 @@ def draw_intro_screen(screen, input_text, cursor_visible):
 
     game_name_font = pygame.font.Font('assets/fonts/PimpawCat-lg3dd.ttf', 80)
     game_name = game_name_font.render('Typing Cat', True, (250, 250, 250))
-    game_name_rect = game_name.get_rect(center = (640, 200))
+    game_name_rect = game_name.get_rect(center=(SCREEN_WIDTH // 2, 200))
     screen.blit(game_name, game_name_rect)
 
     menu_font = pygame.font.Font('assets/fonts/bohemian-typewriter.regular.ttf', 40)
     menu = menu_font.render('Type PLAY or QUIT and press ENTER', True, (250, 250, 250))
-    menu_rect = menu.get_rect(center = (640, 400))
+    menu_rect = menu.get_rect(center=(SCREEN_WIDTH // 2, 400))
     screen.blit(menu, menu_rect)
 
     input_surface = menu_font.render(input_text, True, (250, 250, 250))
-    input_rect = input_surface.get_rect(center=(640, 450))
+    input_rect = input_surface.get_rect(center=(SCREEN_WIDTH // 2, 450))
     screen.blit(input_surface, input_rect)
 
     if cursor_visible:
@@ -107,16 +139,14 @@ def draw_intro_screen(screen, input_text, cursor_visible):
 def main():
     screen, background_surf, foreground_surf, bg_x, clock = initialize_game()
 
-    screen_type = 0
+    game_state = INTRO
     user_input = ""
     cursor_blink_timer = 0
     cursor_visible = True
+    word_correct = False
 
-    #Groups
-    player = pygame.sprite.GroupSingle()
-    player.add(Player())
-    enemies = pygame.sprite.GroupSingle()
-    enemies.add(Enemies())
+    player = pygame.sprite.GroupSingle(Player())
+    enemies = pygame.sprite.GroupSingle(Enemies(screen))
 
     while True:
         for event in pygame.event.get():
@@ -127,8 +157,8 @@ def main():
                 if event.key == pygame.K_RETURN:
                     if user_input.lower() == 'play':
                         print("Starting the game!")
-                        screen_type = 1  # Transition to the game state
-                        break  # Break out of the while loop
+                        game_state = WALK  # Transition to the walk state
+                        break
                     elif user_input.lower() == 'quit':
                         pygame.quit()
                         exit()
@@ -147,7 +177,7 @@ def main():
         # Draw the background using the functions
         draw_background(screen, background_surf, bg_x)
 
-        if screen_type == 0:
+        if game_state == INTRO:
             draw_intro_screen(screen, user_input, cursor_visible)
             
             # Handle cursor blinking
@@ -156,16 +186,16 @@ def main():
                 cursor_visible = not cursor_visible
                 cursor_blink_timer = 0
 
-        if screen_type == 1:
+        if game_state == WALK:
             player.draw(screen)
             player.update()
             enemies.draw(screen)
-            enemies.update()
+            enemies.update(word_correct)
 
         # Draw the foreground lastly so it covers previous layers
         draw_foreground(screen, foreground_surf, bg_x)
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(GAME_SPEED)
 
 if __name__ == "__main__":
     main()
