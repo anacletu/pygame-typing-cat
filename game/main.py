@@ -191,6 +191,52 @@ class TextBox:
         font_surface = self.font.render(self.text, True, (255, 255, 255))
         screen.blit(font_surface, (self.position[0] + 5, self.position[1] + 5))
 
+class Word:
+    def __init__(self, screen, font):
+        self.x_pos = randint(100, 700)
+        self.y_pos = -50
+        self.screen = screen
+        self.font = font
+        self.word_surface = None
+        self.word_rect = None
+
+    def generate_word(self):
+        with open('assets/words/words.txt', 'r') as file:
+            self.word_surface = self.font.render(file.readline().strip(), True, (250, 250, 250))
+            self.word_rect = self.word_surface.get_rect(center=(self.x_pos, self.y_pos))
+
+    def draw(self):
+        self.screen.blit(self.word_surface, self.word_rect)
+
+    def move(self):
+        self.y_pos += 2
+        self.word_rect.y = self.y_pos
+
+    def update(self):
+        self.move()
+
+class FetchWords:
+    def __init__(self, screen, font):
+        self.screen = screen
+        self.font = font
+        self.words = []
+
+    def create_word(self):
+        word = Word(self.screen, self.font)
+        word.generate_word()
+        self.words.append(word)
+
+    def draw(self):
+        for word in self.words:
+            word.draw()
+
+    def update(self):
+        for word in self.words:
+            word.update()
+
+    def remove_offscreen_words(self):
+        self.words = [word for word in self.words if word.y_pos < SCREEN_HEIGHT + 50]
+
 def initialize_game():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption("Typing Cat")
@@ -247,6 +293,7 @@ def main():
     player = pygame.sprite.GroupSingle(Player())
     enemies = pygame.sprite.GroupSingle(Enemies(screen))
     text_box = TextBox(game_font, (20, 540), 220, 45)
+    words = FetchWords(screen, game_font)
 
     while True:
         for event in pygame.event.get():
@@ -296,6 +343,13 @@ def main():
 
             enemies.draw(screen)
             enemies.update(word_correct)
+
+            if randint(1, 1000) < 5:  # Adjust the probability as needed
+                words.create_word()
+
+            words.draw()
+            words.update()
+            words.remove_offscreen_words()
 
         # Draw the foreground lastly so it covers previous layers
         draw_foreground(screen, foreground_surf, bg_x)
