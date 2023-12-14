@@ -344,7 +344,7 @@ def main():
             enemies.draw(screen)
             enemies.update(word_correct)
 
-            if randint(1, 1000) < 5:  # Adjust the probability as needed
+            if randint(1, 500) < 5:  # Adjust the probability as needed
                 words.create_word()
 
             words.draw()
