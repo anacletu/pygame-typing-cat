@@ -3,8 +3,8 @@ from sys import exit
 from random import randint
 
 # Constants
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
 GAME_SPEED = 60
 
 # Game States
@@ -12,43 +12,63 @@ INTRO = 0
 WALK = 1
 FIGHT = 2
 VICTORY = 3
-GAME_OVER = 4 
+GAME_OVER = 4
 
-PLAYER_WALK_IMAGES = [
-    'assets/images/player/walk1.png',
-    'assets/images/player/walk2.png'
-]
+# Preparing the sprites
+def player_sprite_sheet():
+    sprite_sheet = pygame.image.load('assets/images/player/cat_sprite.png')
 
-SKELETON_WALK_IMAGES = [
-    'assets/images/enemies/skeleton/walk1.png',
-    'assets/images/enemies/skeleton/walk2.png',
-    'assets/images/enemies/skeleton/walk3.png',
-    'assets/images/enemies/skeleton/walk4.png'
-]
+    frame_width = 70  
+    frame_height = 70  
+    frames_per_row = 8  
+    frames_per_column = 15  
+
+    frames = []
+    for row in range(frames_per_column):
+        for col in range(frames_per_row):
+            frame = pygame.Rect(col * frame_width, row * frame_height, frame_width, frame_height)
+            frames.append(frame)
+
+    individual_frames = [sprite_sheet.subsurface(frame).copy() for frame in frames]
+
+    return individual_frames
 
 class Player(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.player_walk = [pygame.image.load(image).convert_alpha() for image in PLAYER_WALK_IMAGES]
-        self.player_index = 0
+        self.player_frames = player_sprite_sheet()
+        self.player_index = 8
 
         self.x_pos = -100
-        self.y_pos = 665
-        self.image = self.player_walk[self.player_index]
+        self.y_pos = 565
+        self.image = self.player_frames[self.player_index]
         self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
                 
     def walk_animation(self):
         self.player_index += 0.1
-        if self.player_index >= len(self.player_walk): self.player_index = 0
-        self.image = self.player_walk[int(self.player_index)]
-    
-    def update(self):
-        self.walk_animation()
-        
-        # Check if player is still entering the screen
-        if self.x_pos < 150:
-            self.x_pos += 3
+        if self.player_index >= 15 or self.player_index < 8: self.player_index = 8 # loop through walk frames in sprite sheet 
+        self.image = self.player_frames[int(self.player_index)]
+
+        # Limit for player position on the screen
+        if self.x_pos < 130:
+            self.x_pos += 2
             self.rect.midbottom = (self.x_pos, self.y_pos)
+    
+    def stand_animation(self):
+        self.player_index += 0.1
+        if self.player_index >= 7: self.player_index = 0 # loop through stand frames in sprite sheet 
+        self.image = self.player_frames[int(self.player_index)]
+
+    def fight_animation(self):
+        self.player_index += 0.1
+        if self.player_index >= 62 or self.player_index < 55: self.player_index = 55 # loop through attack frames in sprite sheet 
+        self.image = self.player_frames[int(self.player_index)]
+    
+    def update(self, game_state):
+        if game_state == WALK or game_state == INTRO:
+            self.walk_animation()
+        elif game_state == FIGHT:
+            self.stand_animation()
 
 class Enemies(pygame.sprite.Sprite):
     def __init__(self, screen):
@@ -153,11 +173,11 @@ def main():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_f:pygame.display.toggle_fullscreen()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if user_input.lower() == 'play':
-                        print("Starting the game!")
-                        game_state = WALK  # Transition to the walk state
+                        game_state = FIGHT
                         break
                     elif user_input.lower() == 'quit':
                         pygame.quit()
@@ -167,16 +187,8 @@ def main():
                 else:
                     user_input += event.unicode
 
-        # Update background position
-        bg_x -= 2
-
-        # Wrap the background to create the scrolling effect
-        if bg_x < -background_surf.get_width():
-            bg_x = 0
-
-        # Draw the background using the functions
         draw_background(screen, background_surf, bg_x)
-
+        
         if game_state == INTRO:
             draw_intro_screen(screen, user_input, cursor_visible)
             
@@ -185,10 +197,22 @@ def main():
             if cursor_blink_timer > 300:  # Blink every 300 milliseconds
                 cursor_visible = not cursor_visible
                 cursor_blink_timer = 0
-
-        if game_state == WALK:
+        
+        if game_state == WALK or game_state == INTRO:
             player.draw(screen)
-            player.update()
+            player.update(game_state)
+            
+            bg_x -= 2
+            if bg_x < -background_surf.get_width(): # Wrap the background to create the scrolling effect
+                bg_x = 0
+
+        elif game_state == WALK:
+            player.draw(screen)
+            player.update(game_state)
+
+        elif game_state == FIGHT:
+            player.draw(screen)
+            player.update(game_state)
             enemies.draw(screen)
             enemies.update(word_correct)
 
