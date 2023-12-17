@@ -7,6 +7,7 @@ pygame.init()
 # Fonts
 title_font = pygame.font.Font('assets/fonts/PimpawCat-lg3dd.ttf', 80)
 game_font = pygame.font.Font('assets/fonts/bohemian-typewriter.regular.ttf', 30)
+words_font = pygame.font.Font('assets/fonts/bohemian-typewriter.regular.ttf', 24)
 
 # Constants
 SCREEN_WIDTH = 800
@@ -50,6 +51,34 @@ def enemies_sprite_sheet(enemy, action):
             frames_per_column = 1
         elif action == 'death':
             sprite_sheet = pygame.image.load('assets/images/enemies/skeleton/Death.png')
+            frames_per_row = 4  
+            frames_per_column = 1
+
+    if enemy == 'flying_eye':
+        if action == 'walk':
+            sprite_sheet = pygame.image.load('assets/images/enemies/flying_eye/Walk.png')
+            frames_per_row = 8  
+            frames_per_column = 1  
+        elif action == 'attack':
+            sprite_sheet = pygame.image.load('assets/images/enemies/flying_eye/Attack.png')
+            frames_per_row = 8  
+            frames_per_column = 1
+        elif action == 'death':
+            sprite_sheet = pygame.image.load('assets/images/enemies/flying_eye/Death.png')
+            frames_per_row = 4  
+            frames_per_column = 1
+    
+    if enemy == 'goblin':
+        if action == 'walk':
+            sprite_sheet = pygame.image.load('assets/images/enemies/goblin/Walk.png')
+            frames_per_row = 8  
+            frames_per_column = 1  
+        elif action == 'attack':
+            sprite_sheet = pygame.image.load('assets/images/enemies/goblin/Attack.png')
+            frames_per_row = 8  
+            frames_per_column = 1
+        elif action == 'death':
+            sprite_sheet = pygame.image.load('assets/images/enemies/goblin/Death.png')
             frames_per_row = 4  
             frames_per_column = 1
 
@@ -149,12 +178,14 @@ class Enemies(pygame.sprite.Sprite):
         self.enemy_frames = enemies_sprite_sheet(self.type, 'walk')
         self.animation_index = 0
 
-        self.x_pos = randint(900, 1000)
-        self.y_pos = 605
+        self.x_pos = randint(810, 900)
+        if type == 'flying_eye': self.y_pos = 520
+        else: self.y_pos = 605
         self.image = self.enemy_frames[self.animation_index]
         self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
 
-        self.total_health = 100
+        if type == 'goblin': self.total_health = 50
+        else: self.total_health = 100
         self.screen = screen
         self.is_attacking = False
 
@@ -162,7 +193,8 @@ class Enemies(pygame.sprite.Sprite):
         return self.is_attacking
 
     def walk_animation(self):
-        self.animation_index -= 0.12
+        if self.type == 'goblin': self.animation_index -= 0.2
+        else: self.animation_index -= 0.12
         if self.animation_index <= 0: self.animation_index = 3
         self.image = self.enemy_frames[int(self.animation_index)]
     
@@ -180,11 +212,12 @@ class Enemies(pygame.sprite.Sprite):
 
     def screen_movement(self):
         if self.x_pos >= 200 and self.total_health > 0: 
-            self.x_pos -= 1
+            if self.type == 'goblin': self.x_pos -= 2
+            else: self.x_pos -= 1
         self.rect.midbottom = (self.x_pos, self.y_pos)
 
     def health_update(self, word_correct):
-        if word_correct:
+        if word_correct and self.x_pos < 800:
             self.total_health -= 15
 
     def display_health(self):
@@ -288,9 +321,19 @@ class Word:
             # Read all lines from the file
             words = file.readlines()
 
-            # Choose a random word
-            self.chosen_word = choice(words).strip().lower()
+            # Remove newline characters from the words
+            words = [word.strip().lower() for word in words]
+            used_words = []
 
+            # Ensure that the selected word has not been used before in the game session
+            available_words = [word for word in words if word not in used_words]
+            if available_words:
+                self.chosen_word = choice(available_words)
+                used_words.append(self.chosen_word)
+            else:
+                used_words = []
+
+            # Render the chosen word
             self.word_surface = self.font.render(self.chosen_word, True, (250, 250, 250))
             self.word_rect = self.word_surface.get_rect(center=(self.x_pos, self.y_pos))
 
@@ -345,7 +388,7 @@ class GameProgress:
         self.victory = False
 
     def draw(self):
-        self.width -= 0.5 # Controls the time to win the game
+        self.width -= 0.2 # Controls the time to win the game
         pygame.draw.rect(self.screen, (0, 255, 0), (self.x, self.y, self.width, self.height))
 
     def get_victory(self):
@@ -372,7 +415,7 @@ def difficulty_control():
     time_since_last_word = 0
     time_since_last_enemy = 0
     word_max_speed = 5000
-    enemy_max_speed = 12000
+    enemy_max_speed = 10000
 
     return time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed
 
@@ -429,6 +472,7 @@ def main():
     # Initialization of game variables
     game_state = INTRO
     user_input = ""
+    typed_word = ""
     health_lost = 0
     cursor_blink_timer = 0
     cursor_visible = True
@@ -440,24 +484,25 @@ def main():
     enemies_group = pygame.sprite.Group()
     enemies_group.add(Enemies(screen, choice(['skeleton'])))
     text_box = TextBox(game_font, (20, 540), 500, 45)
-    words = FetchWords(screen, game_font)
+    words = FetchWords(screen, words_font)
     progress_bar = GameProgress(screen)
 
     while True:
         # Update the elapsed time
         elapsed_time = clock.tick(GAME_SPEED)
-        word_creation_interval = randint(1500, word_max_speed)  # Time interval in milliseconds
+        word_creation_interval = randint(1000, word_max_speed)  # Time interval in milliseconds
         enemy_creation_interval = randint(6000, enemy_max_speed)
-        if word_max_speed > 1505: word_max_speed -= 1
-        if enemy_max_speed > 6050: enemy_max_speed -= 50
+        if word_max_speed > 1002: word_max_speed -= 1
+        if enemy_max_speed > 6101: enemy_max_speed -= 100
         
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            elif event.type == pygame.KEYDOWN and (game_state == INTRO or game_state == VICTORY):
+            elif event.type == pygame.KEYDOWN and not game_state == PLAY:
                 if event.key == pygame.K_RETURN:
                     if user_input.lower() == 'play':
+                        user_input = ""
                         game_state = PLAY
                         break
                     elif user_input.lower() == 'quit':
@@ -468,7 +513,7 @@ def main():
                 else:
                     user_input += event.unicode
             
-            typed_word = text_box.handle_event(event)
+            if game_state == PLAY: typed_word = text_box.handle_event(event)
 
         draw_background(screen, background_surf, bg_x)
         
@@ -499,7 +544,7 @@ def main():
 
             time_since_last_enemy += elapsed_time
             if time_since_last_enemy >= enemy_creation_interval:
-                enemies_group.add(Enemies(screen, choice(['skeleton'])))
+                enemies_group.add(Enemies(screen, choice(['skeleton', 'flying_eye', 'goblin'])))
                 time_since_last_enemy = 0
 
             enemies_group.draw(screen)
