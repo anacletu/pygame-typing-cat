@@ -1,6 +1,6 @@
 import pygame
 from sys import exit
-from random import randint, choice
+from random import randint, choice, shuffle
 
 pygame.init()
 
@@ -92,7 +92,10 @@ class Player(pygame.sprite.Sprite):
             self.rect.midbottom = (self.x_pos, self.y_pos)
     
     def stand_animation(self):
-        self.player_index += 0.15
+        if self.x_pos < 120: # Making sure character is in the right spot if user starts game too fast
+            self.rect.midbottom = (120, self.y_pos)
+        
+        self.player_index += 0.12
         if self.player_index >= 7: self.player_index = 0 # loop through stand frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
@@ -106,12 +109,16 @@ class Player(pygame.sprite.Sprite):
         if self.player_index < 56: self.player_index = 56 # loop through attack frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
+    def defeated_animation(self):
+        if self.player_index > 40 or self.player_index < 32: self.player_index = 32 # loop through damage frames in sprite sheet 
+        if int(self.player_index) != 39:
+            self.player_index += 0.1
+        self.image = self.player_frames[int(self.player_index)]
+    
     def health_status(self):
         if self.damage:
             self.health += 0.2
             self.damage = False
-        if self.health <= 50:
-            self.kill()
     
     def get_health_amount(self):
         return self.health
@@ -132,6 +139,8 @@ class Player(pygame.sprite.Sprite):
             self.damage_animation()
             self.damage = True
             self.health_status()
+        elif action == 'defeated':
+            self.defeated_animation()
 
 class Enemies(pygame.sprite.Sprite):
     def __init__(self, screen, type):
@@ -209,18 +218,17 @@ class PlayerHealth():
         self.heart = pygame.image.load('assets/images/player/heart.png')
         self.containers = []
         self.screen = screen
+        self.bleed_control = 0
 
         for _ in range(5):
             self.heart_rect = self.heart.get_rect()
             self.containers.append(self.heart_rect)
     
     def update_containers(self, health_lost):
-        health_lost = int(health_lost)
         length = len(self.containers)
-        for _ in range(health_lost):
-            if length > 0:
-                self.containers.pop()
-                length -= 1
+        if length > 0 and self.bleed_control < health_lost:
+            self.containers.pop()
+            self.bleed_control += 1   
 
     def display_hearts(self):
         heart_width = self.heart.get_width()
@@ -234,7 +242,6 @@ class PlayerHealth():
     def update(self, health_lost):
         self.update_containers(health_lost)
         self.display_hearts()
-
 
 class TextBox:
     def __init__(self, font, position, width, height):
@@ -258,7 +265,6 @@ class TextBox:
                     self.text += event.unicode
 
     def update(self):
-        # You can add additional update logic here if needed
         pass
 
     def draw(self, screen):
@@ -268,7 +274,7 @@ class TextBox:
 
 class Word:
     def __init__(self, screen, font):
-        self.x_pos = randint(100, 700)
+        self.x_pos = randint(150, 650)
         self.y_pos = -50
         self.screen = screen
         self.font = font
@@ -283,7 +289,7 @@ class Word:
             words = file.readlines()
 
             # Choose a random word
-            self.chosen_word = choice(words).strip()
+            self.chosen_word = choice(words).strip().lower()
 
             self.word_surface = self.font.render(self.chosen_word, True, (250, 250, 250))
             self.word_rect = self.word_surface.get_rect(center=(self.x_pos, self.y_pos))
@@ -409,6 +415,13 @@ def draw_intro_screen(screen, input_text, cursor_visible, title_font, game_font,
         cursor_rect = pygame.Rect(input_rect.right, input_rect.y, 2, input_rect.height)
         pygame.draw.rect(screen, (255, 255, 255), cursor_rect)
 
+def draw_game_over_screen(screen, font):
+    screen.fill((0,0,0))
+
+    game_over_message = font.render('GAME OVER', True, (250, 250, 250))
+    game_over_rect = game_over_message.get_rect(center=(SCREEN_WIDTH // 2, 200))
+    screen.blit(game_over_message, game_over_rect)
+
 def main():
     screen, background_surf, foreground_surf, bg_x, clock = initialize_game()
     time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed = difficulty_control()
@@ -500,7 +513,10 @@ def main():
                     player.update('stand', word_correct)
                     player.update('attack', word_correct)
 
-            health_lost = player.sprite.get_health_amount()
+            health_lost = player.sprite.get_health_amount() / 10
+
+            if health_lost > 5:
+                game_state = GAME_OVER
 
             # Check if it's time to create a new word
             time_since_last_word += elapsed_time
@@ -519,6 +535,11 @@ def main():
             text_box.update()
         
         if game_state == PLAY: player_health.update(health_lost)
+
+        if game_state == GAME_OVER:
+            draw_game_over_screen(screen, title_font)
+            player.draw(screen)
+            player.update('defeated', word_correct)
         
         pygame.display.flip()
         clock.tick(GAME_SPEED)
