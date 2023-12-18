@@ -1,6 +1,6 @@
 import pygame
 from sys import exit
-from random import randint, choice, shuffle
+from random import randint, choice
 
 pygame.init()
 
@@ -20,8 +20,7 @@ PLAY = 1
 VICTORY = 2
 GAME_OVER = 3
 
-# Preparing the sprites
-def player_sprite_sheet():
+def player_sprite_sheet(): # Preparing the player sprite
     sprite_sheet = pygame.image.load('assets/images/player/cat_sprite.png')
 
     frame_width = 70  
@@ -39,7 +38,7 @@ def player_sprite_sheet():
 
     return individual_frames
 
-def enemies_sprite_sheet(enemy, action):
+def enemies_sprite_sheet(enemy, action): # Preparing the sprites for the enemies
     if enemy == 'skeleton':
         if action == 'walk':
             sprite_sheet = pygame.image.load('assets/images/enemies/skeleton/Walk.png')
@@ -54,7 +53,7 @@ def enemies_sprite_sheet(enemy, action):
             frames_per_row = 4  
             frames_per_column = 1
 
-    if enemy == 'flying_eye':
+    elif enemy == 'flying_eye':
         if action == 'walk':
             sprite_sheet = pygame.image.load('assets/images/enemies/flying_eye/Walk.png')
             frames_per_row = 8  
@@ -68,7 +67,7 @@ def enemies_sprite_sheet(enemy, action):
             frames_per_row = 4  
             frames_per_column = 1
     
-    if enemy == 'goblin':
+    elif enemy == 'goblin':
         if action == 'walk':
             sprite_sheet = pygame.image.load('assets/images/enemies/goblin/Walk.png')
             frames_per_row = 8  
@@ -82,6 +81,20 @@ def enemies_sprite_sheet(enemy, action):
             frames_per_row = 4  
             frames_per_column = 1
 
+    elif enemy == 'mushroom':
+        if action == 'walk':
+            sprite_sheet = pygame.image.load('assets/images/enemies/mushroom/Walk.png')
+            frames_per_row = 8  
+            frames_per_column = 1  
+        elif action == 'attack':
+            sprite_sheet = pygame.image.load('assets/images/enemies/mushroom/Attack.png')
+            frames_per_row = 8  
+            frames_per_column = 1
+        elif action == 'death':
+            sprite_sheet = pygame.image.load('assets/images/enemies/mushroom/Death.png')
+            frames_per_row = 4  
+            frames_per_column = 1
+    
     frame_width = 300  
     frame_height = 300  
 
@@ -179,12 +192,12 @@ class Enemies(pygame.sprite.Sprite):
         self.animation_index = 0
 
         self.x_pos = randint(810, 900)
-        if type == 'flying_eye': self.y_pos = 520
+        if type == 'flying_eye': self.y_pos = 520 # Changes Y position as it is a flying enemy
         else: self.y_pos = 605
         self.image = self.enemy_frames[self.animation_index]
         self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
 
-        if type == 'goblin': self.total_health = 50
+        if type == 'goblin' or type == 'mushroom': self.total_health = 50 # Lower health due to higher speed
         else: self.total_health = 100
         self.screen = screen
         self.is_attacking = False
@@ -193,8 +206,8 @@ class Enemies(pygame.sprite.Sprite):
         return self.is_attacking
 
     def walk_animation(self):
-        if self.type == 'goblin': self.animation_index -= 0.2
-        else: self.animation_index -= 0.12
+        if self.type == 'skeleton': self.animation_index -= 0.12
+        else: self.animation_index -= 0.2
         if self.animation_index <= 0: self.animation_index = 3
         self.image = self.enemy_frames[int(self.animation_index)]
     
@@ -212,7 +225,7 @@ class Enemies(pygame.sprite.Sprite):
 
     def screen_movement(self):
         if self.x_pos >= 200 and self.total_health > 0: 
-            if self.type == 'goblin': self.x_pos -= 2
+            if self.type == 'goblin' or self.type == 'mushroom': self.x_pos -= 2 # Runs instead of walking
             else: self.x_pos -= 1
         self.rect.midbottom = (self.x_pos, self.y_pos)
 
@@ -306,6 +319,8 @@ class TextBox:
         screen.blit(font_surface, (self.position[0] + 5, self.position[1] + 5))
 
 class Word:
+    used_words = []
+    
     def __init__(self, screen, font):
         self.x_pos = randint(150, 650)
         self.y_pos = -50
@@ -315,7 +330,7 @@ class Word:
         self.word_rect = None
         self.generate_word()
         self.chosen_word = ""
-
+    
     def generate_word(self):
         with open('assets/words/words.txt', 'r') as file:
             # Read all lines from the file
@@ -323,15 +338,16 @@ class Word:
 
             # Remove newline characters from the words
             words = [word.strip().lower() for word in words]
-            used_words = []
+            
 
             # Ensure that the selected word has not been used before in the game session
-            available_words = [word for word in words if word not in used_words]
+            available_words = [word for word in words if word not in Word.used_words]
             if available_words:
                 self.chosen_word = choice(available_words)
-                used_words.append(self.chosen_word)
-            else:
-                used_words = []
+                Word.used_words.append(self.chosen_word)
+            else: # Reset the used_words list if all words have been used
+                Word.used_words = []
+                self.chosen_word = choice(words) # Choose a word from the full list
 
             # Render the chosen word
             self.word_surface = self.font.render(self.chosen_word, True, (250, 250, 250))
@@ -416,8 +432,10 @@ def difficulty_control():
     time_since_last_enemy = 0
     word_max_speed = 5000
     enemy_max_speed = 10000
+    word_min_speed = 1000
+    enemy_min_speed = 6000
 
-    return time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed
+    return time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed, word_min_speed, enemy_min_speed
 
 def draw_background(screen, background_surf, bg_x):
     screen.blit(background_surf, (bg_x, -50))
@@ -456,7 +474,7 @@ def draw_intro_screen(screen, input_text, cursor_visible, title_font, game_font,
 
     if cursor_visible:
         cursor_rect = pygame.Rect(input_rect.right, input_rect.y, 2, input_rect.height)
-        pygame.draw.rect(screen, (255, 255, 255), cursor_rect)
+        pygame.draw.rect(screen, (255, 255, 255), cursor_rect)    
 
 def draw_game_over_screen(screen, font):
     screen.fill((0,0,0))
@@ -467,7 +485,7 @@ def draw_game_over_screen(screen, font):
 
 def main():
     screen, background_surf, foreground_surf, bg_x, clock = initialize_game()
-    time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed = difficulty_control()
+    time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed, word_min_speed, enemy_min_speed = difficulty_control()
 
     # Initialization of game variables
     game_state = INTRO
@@ -479,6 +497,7 @@ def main():
     word_correct = False
     victory = False
 
+    # Objects
     player = pygame.sprite.GroupSingle(Player())
     player_health = PlayerHealth(screen)
     enemies_group = pygame.sprite.Group()
@@ -487,22 +506,37 @@ def main():
     words = FetchWords(screen, words_font)
     progress_bar = GameProgress(screen)
 
+    # Game loop
     while True:
-        # Update the elapsed time
+        # Update the elapsed time for further use
         elapsed_time = clock.tick(GAME_SPEED)
-        word_creation_interval = randint(1000, word_max_speed)  # Time interval in milliseconds
-        enemy_creation_interval = randint(6000, enemy_max_speed)
-        if word_max_speed > 1002: word_max_speed -= 1
-        if enemy_max_speed > 6101: enemy_max_speed -= 100
+
+        # Handle cursor display
+        cursor_blink_timer += elapsed_time
+        if cursor_blink_timer > 300:  # Blink every 300 milliseconds
+            cursor_visible = not cursor_visible
+            cursor_blink_timer = 0
+
+        # Background screen for all game modes
+        draw_background(screen, background_surf, bg_x)
+
+        # Variables for frequency of enemies and words spawn
+        word_creation_interval = randint(word_min_speed, word_max_speed)  # Time interval in milliseconds
+        enemy_creation_interval = randint(enemy_min_speed, enemy_max_speed)
         
+        # Reduce the randint range in order to spawn more frequently as game progresses
+        if word_max_speed > word_min_speed + 1: word_max_speed -= 1 #The constants (+1, +100) are meant to prevent max < than min
+        if enemy_max_speed > enemy_min_speed + 100: enemy_max_speed -= 100
+        
+        # Listener loop for user's input
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            elif event.type == pygame.KEYDOWN and not game_state == PLAY:
+            elif event.type == pygame.KEYDOWN and not game_state == PLAY: # Control the menu on INTRO mode
                 if event.key == pygame.K_RETURN:
                     if user_input.lower() == 'play':
-                        user_input = ""
+                        user_input = "" # Reset input
                         game_state = PLAY
                         break
                     elif user_input.lower() == 'quit':
@@ -513,44 +547,35 @@ def main():
                 else:
                     user_input += event.unicode
             
-            if game_state == PLAY: typed_word = text_box.handle_event(event)
-
-        draw_background(screen, background_surf, bg_x)
+            if game_state == PLAY: typed_word = text_box.handle_event(event) # Control input text box on PLAY mode
         
+        # Screen overlap for intro and victory modes
         if game_state == INTRO or game_state == VICTORY:
             draw_intro_screen(screen, user_input, cursor_visible, title_font, game_font, game_state)
-            bg_x -= 2
+            bg_x -= 2 # Background movement speed
             if bg_x < -background_surf.get_width(): # Wrap the background to create the scrolling effect
                 bg_x = 0
 
             player.draw(screen)
             player.update('walk', word_correct)
-            
-            # Handle cursor blinking
-            cursor_blink_timer += clock.get_rawtime()
-            if cursor_blink_timer > 300:  # Blink every 300 milliseconds
-                cursor_visible = not cursor_visible
-                cursor_blink_timer = 0
         
-        if victory:
-            game_state = VICTORY
-        
+        # Gameplay logic during play mode
         if game_state == PLAY:
             progress_bar.update()
-            victory = progress_bar.get_victory()
+            victory = progress_bar.get_victory() # Returns true if progress bar is done
 
             player.draw(screen)
             player.x_pos = 120
 
-            time_since_last_enemy += elapsed_time
+            time_since_last_enemy += elapsed_time # Implements enemy spawn and chooses random sprite
             if time_since_last_enemy >= enemy_creation_interval:
-                enemies_group.add(Enemies(screen, choice(['skeleton', 'flying_eye', 'goblin'])))
+                enemies_group.add(Enemies(screen, choice(['skeleton', 'flying_eye', 'goblin', 'mushroom'])))
                 time_since_last_enemy = 0
 
             enemies_group.draw(screen)
             enemies_group.update(word_correct)
 
-            for enemy in enemies_group:
+            for enemy in enemies_group: # Check every sprite in enemies group and updated player accordinly
                 if enemy.get_is_attacking(): 
                     player.update('damage', word_correct)
                     break
@@ -558,35 +583,39 @@ def main():
                     player.update('stand', word_correct)
                     player.update('attack', word_correct)
 
-            health_lost = player.sprite.get_health_amount() / 10
+            health_lost = player.sprite.get_health_amount() / 10 # Updates health lost variable ( '/ 10' so it matches the number of hearts displayed)
 
             if health_lost > 5:
                 game_state = GAME_OVER
 
-            # Check if it's time to create a new word
-            time_since_last_word += elapsed_time
+            time_since_last_word += elapsed_time # Check if it's time to create a new word
             if time_since_last_word >= word_creation_interval:
                 words.create_word()
-                time_since_last_word = 0  # Reset the timer after creating a word
+                time_since_last_word = 0 
 
             words.draw()
-            word_correct = words.update(typed_word)
+            word_correct = words.update(typed_word) # Check if user typed correctly the word on the screen, returns boolean
             words.remove_offscreen_words()
 
-        # Draw the foreground lastly so it covers previous layers
+        # Change game state if user survives the wave
+        if victory:
+            game_state = VICTORY
+        
+        # Draws the foreground lastly so it covers previous layers
         draw_foreground(screen, foreground_surf, bg_x)
+        
         if game_state == PLAY:
-            text_box.draw(screen)
+            text_box.draw(screen) # Text box for player input over foreground
             text_box.update()
         
-        if game_state == PLAY: player_health.update(health_lost)
+        if game_state == PLAY: player_health.update(health_lost) # Player hearts over foreground
 
         if game_state == GAME_OVER:
             draw_game_over_screen(screen, title_font)
             player.draw(screen)
             player.update('defeated', word_correct)
         
-        pygame.display.flip()
+        pygame.display.flip() # Updates the screen with every loop
         clock.tick(GAME_SPEED)
 
 if __name__ == "__main__":
