@@ -297,6 +297,8 @@ class TextBox:
         self.width = width
         self.height = height
         self.rect = pygame.Rect(position[0], position[1], width, height)
+        self.cursor_visible = True
+        self.cursor_timer = 0
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -311,12 +313,22 @@ class TextBox:
                     self.text += event.unicode
 
     def update(self):
-        pass # Implement cursor
+        self.cursor_timer += 1
+        if self.cursor_timer > 25:  # Adjusts the blinking speed
+            self.cursor_visible = not self.cursor_visible
+            self.cursor_timer = 0
 
     def draw(self, screen):
         pygame.draw.rect(screen, (255, 255, 255), self.rect, 2)
         font_surface = self.font.render(self.text, True, (255, 255, 255))
+        text_width = font_surface.get_width()
         screen.blit(font_surface, (self.position[0] + 5, self.position[1] + 5))
+
+        if self.cursor_visible:
+            cursor_x = self.position[0] + 5 + min(text_width, self.width - 10) + 1 # fine-tune cursor position
+            cursor_y = self.position[1] + 10
+            cursor_height = self.font.get_height() - 5
+            pygame.draw.line(screen, (255, 255, 255), (cursor_x, cursor_y), (cursor_x, cursor_y + cursor_height), 2)
 
 class Word:
     used_words = []
@@ -421,11 +433,14 @@ def initialize_game():
 
     background_surf = pygame.image.load('assets/images/environment/background.png').convert()
     foreground_surf = pygame.image.load('assets/images/environment/foreground.png').convert_alpha()
+    cloud_surface = pygame.image.load('assets/images/environment/clouds.png').convert_alpha()
+    cloud_surface.set_alpha(50)
     bg_x = 0
+    bg_cloud_x = 0
 
     clock = pygame.time.Clock()
 
-    return screen, background_surf, foreground_surf, bg_x, clock
+    return screen, background_surf, foreground_surf, cloud_surface, bg_x, bg_cloud_x, clock
 
 def difficulty_control():
     time_since_last_word = 0
@@ -444,6 +459,10 @@ def draw_background(screen, background_surf, bg_x):
 def draw_foreground(screen, foreground_surf, bg_x):
     screen.blit(foreground_surf, (bg_x, -100))
     screen.blit(foreground_surf, (bg_x + foreground_surf.get_width(), -100))
+
+def draw_cloud(screen, cloud_surface, bg_cloud_x):
+    screen.blit(cloud_surface, (bg_cloud_x, 15))
+    screen.blit(cloud_surface, (bg_cloud_x - cloud_surface.get_width(), 15))
 
 def draw_intro_screen(screen, input_text, cursor_visible, title_font, game_font, game_state):
     overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -476,15 +495,27 @@ def draw_intro_screen(screen, input_text, cursor_visible, title_font, game_font,
         cursor_rect = pygame.Rect(input_rect.right, input_rect.y, 2, input_rect.height)
         pygame.draw.rect(screen, (255, 255, 255), cursor_rect)    
 
-def draw_game_over_screen(screen, font):
+def draw_game_over_screen(screen, font, message_font, cursor_visible, input_text):
     screen.fill((0,0,0))
 
     game_over_message = font.render('GAME OVER', True, (250, 250, 250))
     game_over_rect = game_over_message.get_rect(center=(SCREEN_WIDTH // 2, 200))
     screen.blit(game_over_message, game_over_rect)
 
+    message = message_font.render('Type QUIT to exit', True, (250, 250, 250))
+    message_rect = message.get_rect(center=(SCREEN_WIDTH // 2, 280))
+    screen.blit(message, message_rect)
+
+    input_surface = message_font.render(input_text, True, (250, 250, 250))
+    input_rect = input_surface.get_rect(center=(SCREEN_WIDTH // 2, 350))
+    screen.blit(input_surface, input_rect)
+
+    if cursor_visible:
+        cursor_rect = pygame.Rect(input_rect.right, input_rect.y, 2, input_rect.height)
+        pygame.draw.rect(screen, (255, 255, 255), cursor_rect)
+
 def main():
-    screen, background_surf, foreground_surf, bg_x, clock = initialize_game()
+    screen, background_surf, foreground_surf, cloud_surface, bg_x, bg_cloud_x, clock = initialize_game()
     time_since_last_word, time_since_last_enemy, word_max_speed, enemy_max_speed, word_min_speed, enemy_min_speed = difficulty_control()
 
     # Initialization of game variables
@@ -610,8 +641,14 @@ def main():
         
         if game_state == PLAY: player_health.update(health_lost) # Player hearts over foreground
 
+        # Last to draw, first layer
+        draw_cloud(screen, cloud_surface, bg_cloud_x)
+        bg_cloud_x += 1
+        if bg_cloud_x > cloud_surface.get_width(): # Wrap the clouds to create the scrolling effect
+            bg_cloud_x = 0
+        
         if game_state == GAME_OVER:
-            draw_game_over_screen(screen, title_font)
+            draw_game_over_screen(screen, title_font, game_font, cursor_visible, user_input)
             player.draw(screen)
             player.update('defeated', word_correct)
         
