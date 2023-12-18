@@ -1,6 +1,6 @@
 # Typing Cat Game
 
-Welcome to Typing Cat, a typing game where you control a cat and defeat enemies by typing words!
+The Typing Cat Game is a Python-based game that challenges players to type words quickly to defeat enemies in order to progress. The game features a variety of enemies, player animations, and an engaging typing mechanic.
 
 [Typing Cat Game Screenshot](/path/to/screenshot.png)
 
@@ -10,24 +10,24 @@ Welcome to Typing Cat, a typing game where you control a cat and defeat enemies 
 - [Introduction](#introduction)
 - [Gameplay](#gameplay)
 - [Installation](#installation)
-- [Dependencies](#dependencies)
-- [How to Play](#how-to-play)
-- [Controls](#controls)
-- [Credits](#credits)
+- [Development](#development)
+- [Acknowledgements](#acknowledgements)
 - [License](#license)
 
 ## Introduction
 The Typing Cat Game is a fun and educational game designed to improve players' typing skills while providing an enjoyable gaming experience. Players are challenged to type the words falling before they reach the bottom of the screen.
 
 ### Motivation
-
-The motivation for this project came from the desire to practice touch typing in a fun way. While there are great tools available, I saw this as an opportunity to create something custom-made and practice my skills. Additionally, I chose to use this project as the final project for my Harvard's CS50 course.
+The motivation for this project came from the desire to practice touch typing in a fun way. While there are great tools available, I saw this as an opportunity to create something custom-made and practice my skills. Additionally, I chose to develop this project as the final project for my Harvard's CS50 course.
 
 ## Gameplay
 - **Intro Screen**: The game starts with an introduction screen where you need to type "PLAY" to start the game or "QUIT" to exit.
-- **Playing the Game**: Once in the game, control your cat character using the keyboard to type words displayed on enemies.
+- **Playing the Game**: Once in the game, control your cat's attacks by using the keyboard to type words displayed on the screen.
 - **Defeating Enemies**: Type the correct words to defeat enemies. Be quick and accurate to prevent enemies from reaching you.
-- **Scoring**: Your score increases with each defeated enemy. Try to achieve the highest score possible!
+
+### Additional Controls
+- **ENTER Key**: Submit typed word
+- **BACKSPACE Key**: Delete the last character in the input field
 
 ## Installation
 To set up the development environment and run the game, follow these steps:
@@ -37,24 +37,26 @@ To set up the development environment and run the game, follow these steps:
 3. Navigate to the project directory.
 4. Run the game using the `main.py` file.
 
-## Dependencies
-- Python 3.x
+### Dependencies
+- Python 3.11.6
 - Pygame library
 
-## How to Play
-- Type "PLAY" to start the game during the introduction screen.
-- Type the displayed words to defeat enemies.
-- Use the BACKSPACE key to correct mistakes.
-- Press ENTER to submit your typed word.
+## Development
+### Dependencies
+There are many features I would like to implement in the game to make it more appealing
 
-## Controls
-- **F Key**: Toggle fullscreen mode
-- **ENTER Key**: Submit typed word
-- **BACKSPACE Key**: Delete the last character in the input field
+- Addition of more enemy waves
+- Addition of a boss battle after wave is defeated
+- Handle enemy health individually per sprite
+- Refactor the code to be able to implement a replay button without the need of calling main()
+- Possibility to choose difficulty level
+- Inclusion of wpm statistics
+
+If you're interested in contributing to the project, you can fork the repository, make your changes, and submit a pull request.
 
 ## Acknowledgements
 
-First of all, I would like to acknowledge the creators of the Pygame library for providing the foundation for this game.
+First of all, I would like to acknowledge the creators of the Pygame library for providing the foundation for this game and so many others.
 
 ### Credits
 - Background: [Free Pixel Art Forest](https://edermunizz.itch.io/free-pixel-art-forest)
@@ -65,4 +67,4 @@ First of all, I would like to acknowledge the creators of the Pygame library for
 ## License
 This game is open-source and released under the [GNU General Public License (GPL)](LICENSE). Feel free to modify and distribute it as per the license terms.
 
-Enjoy playing Typing Cat!
+**Enjoy playing Typing Cat!**
