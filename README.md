@@ -12,6 +12,7 @@ The Typing Cat Game is a Python-based game that challenges players to type words
 - [Installation](#installation)
 - [Development](#development)
 - [Acknowledgements](#acknowledgements)
+- [Disclaimer](#disclaimer)
 - [License](#license)
 
 ## Introduction
@@ -75,6 +76,11 @@ First of all, I would like to acknowledge the creators of the Pygame library for
 - Player Sprite: [Cat Adventure](https://bdragon1727.itch.io/cat-adventure)
 - Enemies Sprites: [Monsters Creatures Fantasy](https://luizmelo.itch.io/monsters-creatures-fantasy)
 - Fonts: [PimpawCat Font](assets/fonts/PimpawCat-lg3dd.ttf), [Bohemian Typewriter Font](assets/fonts/bohemian-typewriter.regular.ttf)
+
+## Disclaimer
+The Typing Cat Game was developed for educational purposes, with a focus on learning game development concepts and programming skills. As such, the game may not exhibit perfect balance in its mechanics, and the graphics may not have received extensive attention. The primary goal of this project was to explore and apply programming principles in a practical context.
+
+Please note that while efforts have been made to create an enjoyable gaming experience, the game's design and features may not align with the standards of commercial or fully polished games. The Typing Cat Game serves as a learning exercise and a demonstration of programming techniques rather than a fully refined commercial product.
 
 ## License
 This game is open-source and released under the [GNU General Public License (GPL)](LICENSE). Feel free to modify and distribute it as per the license terms.
