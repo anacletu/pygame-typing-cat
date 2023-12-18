@@ -29,6 +29,18 @@ The motivation for this project came from the desire to practice touch typing in
 - **ENTER Key**: Submit typed word
 - **BACKSPACE Key**: Delete the last character in the input field
 
+### Word List
+You are free to update or import your own words.
+
+1. Navigate to the words folder
+2. Update the file or import your own (make sure to rename it as words.txt or change the path in the code)
+
+### Setting the Difficulty
+Right now, there is no way to change the difficulty in-game, but you can make the following changes to the code:
+
+1. XXX
+2. XXXX
+
 ## Installation
 To set up the development environment and run the game, follow these steps:
 

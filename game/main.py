@@ -120,12 +120,12 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(midbottom=(self.x_pos, self.y_pos))
 
         self.attacking = False
-        self.health = 0
         self.damage = False
+        self.health = 0
                 
     def walk_animation(self):
         self.player_index += 0.15
-        if self.player_index >= 15 or self.player_index < 8: self.player_index = 8 # loop through walk frames in sprite sheet 
+        if self.player_index >= 15 or self.player_index < 8: self.player_index = 8 # loops through walk frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
         # Limit for player position on the screen
@@ -138,21 +138,21 @@ class Player(pygame.sprite.Sprite):
             self.rect.midbottom = (120, self.y_pos)
         
         self.player_index += 0.12
-        if self.player_index >= 7: self.player_index = 0 # loop through stand frames in sprite sheet 
+        if self.player_index >= 7: self.player_index = 0 # loops through stand frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
     def damage_animation(self):
         self.player_index += 0.07
-        if self.player_index >= 27 or self.player_index < 24: self.player_index = 24 # loop through damage frames in sprite sheet 
+        if self.player_index >= 27 or self.player_index < 24: self.player_index = 24 # loops through damage frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
     def attack_animation(self):
         self.player_index += 0.1
-        if self.player_index < 56: self.player_index = 56 # loop through attack frames in sprite sheet 
+        if self.player_index < 56: self.player_index = 56 # loops through attack frames in sprite sheet 
         self.image = self.player_frames[int(self.player_index)]
 
     def defeated_animation(self):
-        if self.player_index > 40 or self.player_index < 32: self.player_index = 32 # loop through damage frames in sprite sheet 
+        if self.player_index > 40 or self.player_index < 32: self.player_index = 32 # loops through damage frames in sprite sheet 
         if int(self.player_index) != 39:
             self.player_index += 0.1
         self.image = self.player_frames[int(self.player_index)]
@@ -163,7 +163,7 @@ class Player(pygame.sprite.Sprite):
             self.damage = False
     
     def get_health_amount(self):
-        return self.health
+        return self.health # returns the amount of lost health to be used by the player health class
     
     def update(self, action, word_correct):
         if word_correct:
@@ -203,10 +203,10 @@ class Enemies(pygame.sprite.Sprite):
         self.is_attacking = False
 
     def get_is_attacking(self):
-        return self.is_attacking
+        return self.is_attacking # Returns true so the player class can update the damage taken
 
     def walk_animation(self):
-        if self.type == 'skeleton': self.animation_index -= 0.12
+        if self.type == 'skeleton': self.animation_index -= 0.12 # Skeleton has only 4 frames for walking
         else: self.animation_index -= 0.2
         if self.animation_index <= 0: self.animation_index = 3
         self.image = self.enemy_frames[int(self.animation_index)]
@@ -230,7 +230,7 @@ class Enemies(pygame.sprite.Sprite):
         self.rect.midbottom = (self.x_pos, self.y_pos)
 
     def health_update(self, word_correct):
-        if word_correct and self.x_pos < 800:
+        if word_correct and self.x_pos < 800: # prevents losing health while outside the visiable screen
             self.total_health -= 15
 
     def display_health(self):
@@ -251,8 +251,8 @@ class Enemies(pygame.sprite.Sprite):
             self.death_animation()
             self.is_attacking = False
             self.get_is_attacking()
-            # Check if the death animation is finished
-            if self.animation_index <= 0:
+            
+            if self.animation_index <= 0: # Check if the death animation is finished
                 self.kill()  # Remove the sprite from the group
         
         self.screen_movement()
@@ -264,7 +264,7 @@ class PlayerHealth():
         self.heart = pygame.image.load('assets/images/player/heart.png')
         self.containers = []
         self.screen = screen
-        self.bleed_control = 0
+        self.bleed_control = 0 # Variable to prevent pop() from executing with every loop
 
         for _ in range(5):
             self.heart_rect = self.heart.get_rect()
@@ -272,7 +272,7 @@ class PlayerHealth():
     
     def update_containers(self, health_lost):
         length = len(self.containers)
-        if length > 0 and self.bleed_control < health_lost:
+        if length > 0 and self.bleed_control < health_lost: # This makes sure pop() does not run again and again
             self.containers.pop()
             self.bleed_control += 1   
 
@@ -280,7 +280,7 @@ class PlayerHealth():
         heart_width = self.heart.get_width()
         padding = 5
 
-        for i, self.heart_rect in enumerate(self.containers):
+        for i, self.heart_rect in enumerate(self.containers): # Displays hearts side-by-side
             x = 548 + i * (heart_width + padding)
             y = 543
             self.screen.blit(self.heart, (x, y))
@@ -311,7 +311,7 @@ class TextBox:
                     self.text += event.unicode
 
     def update(self):
-        pass
+        pass # Implement cursor
 
     def draw(self, screen):
         pygame.draw.rect(screen, (255, 255, 255), self.rect, 2)
