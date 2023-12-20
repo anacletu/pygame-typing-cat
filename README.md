@@ -2,9 +2,9 @@
 
 The Typing Cat Game is a Python-based game that challenges players to type words quickly to defeat enemies in order to progress. The game features a variety of enemies, player animations, and an engaging typing mechanic.
 
-[Typing Cat Game Screenshot](/screenshot/screenshot.png)
+[Typing Cat Game Screenshot](screenshot/screenshot.png)
 
-[Typing Cat Game Gif](/screenshot/game_gif.png)
+[Typing Cat Game Gif](screenshot/game_gif.png)
 
 ## Table of Contents
 - [Introduction](#introduction)
