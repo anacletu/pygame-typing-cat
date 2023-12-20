@@ -574,7 +574,7 @@ def main():
 
         # Handle cursor display
         cursor_blink_timer += elapsed_time
-        if cursor_blink_timer > 300:  # Blink every 300 milliseconds
+        if cursor_blink_timer > 300:
             cursor_visible = not cursor_visible
             cursor_blink_timer = 0
 
