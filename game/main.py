@@ -9,6 +9,15 @@ title_font = pygame.font.Font('assets/fonts/PimpawCat-lg3dd.ttf', 80)
 game_font = pygame.font.Font('assets/fonts/bohemian-typewriter.regular.ttf', 30)
 words_font = pygame.font.Font('assets/fonts/bohemian-typewriter.regular.ttf', 24)
 
+# Sounds effects and music
+game_over_sound = pygame.mixer.Sound('assets/audio/game_over.mp3')
+game_over_sound.set_volume(0.5)
+victory_sound = pygame.mixer.Sound('assets/audio/victory.mp3')
+victory_sound.set_volume(0.5)
+bg_music = pygame.mixer.Sound('assets/audio/bg.mp3')
+bg_music.set_volume(0.5)
+bg_music.play(loops = -1)
+
 # Constants
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
@@ -190,6 +199,19 @@ class Enemies(pygame.sprite.Sprite):
         self.type = type
         self.enemy_frames = enemies_sprite_sheet(self.type, 'walk')
         self.animation_index = 0
+        self.defeated_index = 3 # hard coding a different idx for death animation to avoid looping 
+        
+        self.footsteps_sound = pygame.mixer.Sound('assets/audio/footsteps.wav')
+        self.footsteps_sound.set_volume(0.3)
+
+        self.flying_sound = pygame.mixer.Sound('assets/audio/flying.mp3')
+        self.flying_sound.set_volume(0.3)
+
+        self.hit_sound = pygame.mixer.Sound('assets/audio/hit.mp3')
+        self.hit_sound.set_volume(1)
+
+        self.defeat_sound = pygame.mixer.Sound('assets/audio/defeat.mp3')
+        self.defeat_sound.set_volume(0.1)
 
         self.x_pos = randint(810, 900)
         if type == 'flying_eye': self.y_pos = 520 # Changes Y position as it is a flying enemy
@@ -210,6 +232,10 @@ class Enemies(pygame.sprite.Sprite):
         else: self.animation_index -= 0.2
         if self.animation_index <= 0: self.animation_index = 3
         self.image = self.enemy_frames[int(self.animation_index)]
+        
+        if self.animation_index == 3:
+            if self.type == 'flying_eye': self.flying_sound.play(0)
+            else: self.footsteps_sound.play()
     
     def attack_animation(self):
         self.enemy_frames = enemies_sprite_sheet(self.type, 'attack')
@@ -217,11 +243,13 @@ class Enemies(pygame.sprite.Sprite):
         if self.animation_index <= 0: self.animation_index = 7
         self.image = self.enemy_frames[int(self.animation_index)]
 
+        if self.animation_index == 7: self.hit_sound.play()
+
     def death_animation(self):
         self.enemy_frames = enemies_sprite_sheet(self.type, 'death')
-        if self.animation_index > 3: self.animation_index = 3
-        self.animation_index -= 0.1
-        self.image = self.enemy_frames[int(self.animation_index)]
+        if self.defeated_index == 3: self.defeat_sound.play()
+        self.defeated_index -= 0.1
+        self.image = self.enemy_frames[int(self.defeated_index)] 
 
     def screen_movement(self):
         if self.x_pos >= 200 and self.total_health > 0: 
@@ -252,7 +280,7 @@ class Enemies(pygame.sprite.Sprite):
             self.is_attacking = False
             self.get_is_attacking()
             
-            if self.animation_index <= 0: # Check if the death animation is finished
+            if self.defeated_index <= 0: # Check if the death animation is finished
                 self.kill()  # Remove the sprite from the group
         
         self.screen_movement()
@@ -264,7 +292,7 @@ class PlayerHealth():
         self.heart = pygame.image.load('assets/images/player/heart.png')
         self.containers = []
         self.screen = screen
-        self.bleed_control = 0 # Variable to prevent pop() from executing with every loop
+        self.bleed_control = 1 # Variable to prevent pop() from executing with every loop
 
         for _ in range(5):
             self.heart_rect = self.heart.get_rect()
@@ -274,7 +302,7 @@ class PlayerHealth():
         length = len(self.containers)
         if length > 0 and self.bleed_control < health_lost: # This makes sure pop() does not run again and again
             self.containers.pop()
-            self.bleed_control += 1   
+            self.bleed_control += 1
 
     def display_hearts(self):
         heart_width = self.heart.get_width()
@@ -350,7 +378,6 @@ class Word:
 
             # Remove newline characters from the words
             words = [word.strip().lower() for word in words]
-            
 
             # Ensure that the selected word has not been used before in the game session
             available_words = [word for word in words if word not in Word.used_words]
@@ -374,7 +401,7 @@ class Word:
     
     def is_typed_correctly(self, typed_word):
         return typed_word == self.chosen_word
-
+        
     def update(self):
         self.move()
 
@@ -383,6 +410,9 @@ class FetchWords:
         self.screen = screen
         self.font = font
         self.words = []
+
+        self.correct_sound = pygame.mixer.Sound('assets/audio/correct.mp3')
+        self.correct_sound.set_volume(0.5)
 
     def create_word(self):
         word = Word(self.screen, self.font)
@@ -397,10 +427,9 @@ class FetchWords:
         for word in self.words:
             word.update()
             if word.is_typed_correctly(typed_word):
-                # Handle correct typed word (e.g., remove the word, increase score)
+                self.correct_sound.play()
                 self.words.remove(word)
                 return True
-                # Add your score logic here
 
     def remove_offscreen_words(self):
         self.words = [word for word in self.words if word.y_pos < SCREEN_HEIGHT + 50]
@@ -527,6 +556,7 @@ def main():
     cursor_visible = True
     word_correct = False
     victory = False
+    sound_effect = True
 
     # Objects
     player = pygame.sprite.GroupSingle(Player())
@@ -617,6 +647,7 @@ def main():
             health_lost = player.sprite.get_health_amount() / 10 # Updates health lost variable ( '/ 10' so it matches the number of hearts displayed)
 
             if health_lost > 5:
+                bg_music.stop()
                 game_state = GAME_OVER
 
             time_since_last_word += elapsed_time # Check if it's time to create a new word
@@ -630,7 +661,11 @@ def main():
 
         # Change game state if user survives the wave
         if victory:
+            bg_music.stop()
             game_state = VICTORY
+            if sound_effect:
+                victory_sound.play()
+                sound_effect = False
         
         # Draws the foreground lastly so it covers previous layers
         draw_foreground(screen, foreground_surf, bg_x)
@@ -651,6 +686,10 @@ def main():
             draw_game_over_screen(screen, title_font, game_font, cursor_visible, user_input)
             player.draw(screen)
             player.update('defeated', word_correct)
+
+            if sound_effect:
+                game_over_sound.play()
+                sound_effect = False
         
         pygame.display.flip() # Updates the screen with every loop
         clock.tick(GAME_SPEED)
